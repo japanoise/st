@@ -2020,7 +2020,7 @@ void
 opencopied(const Arg *arg)
 {
 	const size_t max_cmd = 2048;
-	const char *clip = xsel.primary;
+	const char *clip = xsel.clipboard;
 	if(!clip) {
 		fprintf(stderr, "Warning: nothing copied to clipboard\n");
 		return;
