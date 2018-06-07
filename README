@@ -32,3 +32,13 @@ Credits
 -------
 Based on Aurélien APTEL <aurelien dot aptel at gmail dot com> bt source code.
 
+Patches
+-------
+
+- use go mono pt. 10
+- dracula
+- scrollback + scrollback-mouse
+- https://lists.suckless.org/hackers/1708/15376.html
+- spoiler
+- open_copied_url; changed to PRIMARY
+- disable defaultattr; it was always turning up for go mono bold for some stupid reason

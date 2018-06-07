@@ -413,6 +413,7 @@ bpress(XEvent *e)
 {
 	struct timespec now;
 	MouseShortcut *ms;
+	MouseKey *mk;
 	int snap;
 
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
@@ -424,6 +425,14 @@ bpress(XEvent *e)
 		if (e->xbutton.button == ms->b
 				&& match(ms->mask, e->xbutton.state)) {
 			ttywrite(ms->s, strlen(ms->s), 1);
+			return;
+		}
+	}
+
+	for (mk = mkeys; mk < mkeys + LEN(mkeys); mk++) {
+		if (e->xbutton.button == mk->b
+				&& match(mk->mask, e->xbutton.state)) {
+			mk->func(&mk->arg);
 			return;
 		}
 	}
@@ -1288,13 +1297,13 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 	XRectangle r;
 
 	/* Fallback on color display for attributes not supported by the font */
-	if (base.mode & ATTR_ITALIC && base.mode & ATTR_BOLD) {
-		if (dc.ibfont.badslant || dc.ibfont.badweight)
-			base.fg = defaultattr;
-	} else if ((base.mode & ATTR_ITALIC && dc.ifont.badslant) ||
-	    (base.mode & ATTR_BOLD && dc.bfont.badweight)) {
-		base.fg = defaultattr;
-	}
+//	if (base.mode & ATTR_ITALIC && base.mode & ATTR_BOLD) {
+//		if (dc.ibfont.badslant || dc.ibfont.badweight)
+//			base.fg = defaultattr;
+//	} else if ((base.mode & ATTR_ITALIC && dc.ifont.badslant) ||
+//	    (base.mode & ATTR_BOLD && dc.bfont.badweight)) {
+//		base.fg = defaultattr;
+//	}
 
 	if (IS_TRUECOL(base.fg)) {
 		colfg.alpha = 0xffff;
@@ -1358,9 +1367,14 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 	}
 
 	if (base.mode & ATTR_REVERSE) {
-		temp = fg;
-		fg = bg;
-		bg = temp;
+		if (bg == fg) {
+			bg = &dc.col[defaultfg];
+			fg = &dc.col[defaultbg];
+		} else {
+			temp = fg;
+			fg = bg;
+			bg = temp;
+		}
 	}
 
 	if (base.mode & ATTR_BLINK && win.mode & MODE_BLINK)
@@ -1468,10 +1482,14 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 			g.u = 0x2603;
 		case 0: /* Blinking Block */
 		case 1: /* Blinking Block (Default) */
+			if (IS_SET(MODE_BLINK))
+				break;
 		case 2: /* Steady Block */
 			xdrawglyph(g, cx, cy);
 			break;
 		case 3: /* Blinking Underline */
+			if (IS_SET(MODE_BLINK))
+				break;
 		case 4: /* Steady Underline */
 			XftDrawRect(xw.draw, &drawcol,
 					borderpx + cx * win.cw,
@@ -1480,6 +1498,8 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 					win.cw, cursorthickness);
 			break;
 		case 5: /* Blinking bar */
+			if (IS_SET(MODE_BLINK))
+				break;
 		case 6: /* Steady bar */
 			XftDrawRect(xw.draw, &drawcol,
 					borderpx + cx * win.cw,
@@ -1802,6 +1822,8 @@ run(void)
 	int ttyfd;
 	struct timespec drawtimeout, *tv = NULL, now, last, lastblink;
 	long deltatime;
+	int blink_cursor = win.cursor == 0 || win.cursor == 1 ||
+	                   win.cursor == 3 || win.cursor == 5;
 
 	/* Waiting for window mapping */
 	do {
@@ -1838,7 +1860,7 @@ run(void)
 		if (FD_ISSET(ttyfd, &rfd)) {
 			ttyread();
 			if (blinktimeout) {
-				blinkset = tattrset(ATTR_BLINK);
+				blinkset = blink_cursor || tattrset(ATTR_BLINK);
 				if (!blinkset)
 					MODBIT(win.mode, 0, MODE_BLINK);
 			}
@@ -1989,7 +2011,7 @@ void
 opencopied(const Arg *arg)
 {
 	const size_t max_cmd = 2048;
-	const char *clip = xsel.clipboard;
+	const char *clip = xsel.primary;
 	if(!clip) {
 		fprintf(stderr, "Warning: nothing copied to clipboard\n");
 		return;
