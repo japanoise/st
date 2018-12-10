@@ -154,14 +154,16 @@ static unsigned int defaultattr = 11;
  */
 static MouseShortcut mshortcuts[] = {
 	/* button               mask            string */
-	{ Button4,              XK_NO_MOD,      "\031" },
-	{ Button5,              XK_NO_MOD,      "\005" },
+	/* These are vi exclusive shortcuts; they cause havoc with other programs.
+	 *{ Button4,              XK_NO_MOD,      "\031" },
+	 *{ Button5,              XK_NO_MOD,      "\005" },
+	 */
 };
 
 MouseKey mkeys[] = {
 	/* button               mask            function        argument */
-	{ Button4,              ShiftMask,      kscrollup,      {.i =  1} },
-	{ Button5,              ShiftMask,      kscrolldown,    {.i =  1} },
+	{ Button4,              XK_ANY_MOD,      kscrollup,      {.i =  1} },
+	{ Button5,              XK_ANY_MOD,      kscrolldown,    {.i =  1} },
 };
 
 /* Internal keyboard shortcuts. */
